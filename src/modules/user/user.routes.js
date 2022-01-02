@@ -7,7 +7,6 @@ const validation = require(path.join(
 const controller = require('./user.controllers');
 const { registerSchema, profileSchema } = require('./user.schema');
 
-
 module.exports = (app) => {
     app.route('/api/users')
         .get(auth, controller.getUsers)
