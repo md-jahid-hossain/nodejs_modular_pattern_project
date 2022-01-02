@@ -1,13 +1,37 @@
-const UserType = require("./user-types.model");
-const User = require("./user.model");
+const UserType = require('./user-types.model');
+const User = require('./user.model');
+const jwt = require('jsonwebtoken');
 
-const getUsers = async (req, res) => {
+async function login(req, res) {
+    try {
+        const { email, password } = req.body;
+
+        const user = await User.findOne({ where: { email } });
+
+        if (!user || !user.password || !User.validPassword(password))
+            return res.status(400).send('Invalid email or password.');
+
+        const payload = { user_id: user.id, email: user.email };
+        const token = jwt.sign(payload, 'iamsecretkey', { expiresIn: '2h' });
+
+        user.dataValues.token = token;
+
+        res.send(user);
+    } catch (error) {
+        console.log(error);
+        res.status(500).send('Internal Server Error!');
+    }
+}
+
+async function getUsers(req, res) {
     try {
         const users = await User.findAll({
-            include: [{
-                model: UserType,
-                as: 'user_types'
-            }]
+            include: [
+                {
+                    model: UserType,
+                    as: 'user_types'
+                }
+            ]
         });
 
         res.send(users);
@@ -15,9 +39,9 @@ const getUsers = async (req, res) => {
         console.log(error);
         res.status(500).send('Internal server error.');
     }
-};
+}
 
-const getUser = async (req, res) => {
+async function getUser(req, res) {
     const { id } = req.params;
 
     try {
@@ -29,15 +53,14 @@ const getUser = async (req, res) => {
         console.log(error);
         res.status(500).send('Internal server error.');
     }
-};
+}
 
-const createUser = async (req, res) => {
+async function createUser(req, res) {
     const { username, email, password, userTypeId } = req.body;
 
     try {
         const isUsernameExist = await User.findOne({ where: { username } });
-        if (isUsernameExist)
-            return res.status(400).send('Duplicate username.');
+        if (isUsernameExist) return res.status(400).send('Duplicate username.');
 
         const user = await User.create({
             username,
@@ -51,9 +74,9 @@ const createUser = async (req, res) => {
         console.log(error);
         res.status(500).send('Internal server error.');
     }
-};
+}
 
-const updateUser = async (req, res) => {
+async function updateUser(req, res) {
     const { id } = req.params;
     const { first_name, last_name, age, phone_number, address } = req.body;
 
@@ -77,9 +100,9 @@ const updateUser = async (req, res) => {
         console.log(error);
         res.status(500).send('Internal server error.');
     }
-};
+}
 
-const updateUserPartially = async (req, res) => {
+async function updateUserPartially(req, res) {
     const { id } = req.params;
     const { first_name, last_name, age, phone_number, address } = req.body;
 
@@ -98,9 +121,9 @@ const updateUserPartially = async (req, res) => {
         console.log(error);
         res.status(500).send('Internal server error.');
     }
-};
+}
 
-const deleteUser = async (req, res) => {
+async function deleteUser(req, res) {
     const { id } = req.params;
 
     try {
@@ -114,7 +137,7 @@ const deleteUser = async (req, res) => {
         console.log(error);
         res.status(500).send('Internal server error.');
     }
-};
+}
 
 module.exports = {
     getUsers,
@@ -122,5 +145,6 @@ module.exports = {
     createUser,
     updateUser,
     updateUserPartially,
-    deleteUser
+    deleteUser,
+    login
 };
